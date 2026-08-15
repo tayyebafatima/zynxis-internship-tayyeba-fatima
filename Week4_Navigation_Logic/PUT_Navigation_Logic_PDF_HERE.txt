@@ -1,0 +1,91 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'firebase_options.dart';
+
+import 'constants/app_constants.dart';
+import 'constants/app_theme.dart';
+
+import 'providers/auth_provider.dart';
+import 'providers/favorite_provider.dart';
+import 'providers/task_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/counter_provider.dart';
+import 'screens/splash_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Create Providers
+  final themeProvider = ThemeProvider();
+  final authProvider = AuthProvider();
+
+  // Load saved data before showing the app
+  await themeProvider.loadTheme();
+  await authProvider.loadSession();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        // Theme Provider
+        ChangeNotifierProvider.value(
+          value: themeProvider,
+        ),
+
+        // Authentication Provider
+        ChangeNotifierProvider.value(
+          value: authProvider,
+        ),
+
+        // Task Provider
+        ChangeNotifierProvider(
+          create: (_) => TaskProvider(),
+        ),
+
+        // Favorites Provider
+        ChangeNotifierProvider(
+          create: (_) => FavoriteProvider()..loadFavorites(),
+        ),
+        // Counter Provider
+        ChangeNotifierProvider(
+          create: (_) => CounterProvider(),
+        ),
+      ],
+      child: const ZynxisApp(),
+    ),
+  );
+}
+
+class ZynxisApp extends StatelessWidget {
+  const ZynxisApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: AppConstants.appName,
+
+          // Themes
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.themeMode,
+
+          // Theme Animation
+          themeAnimationDuration: AppConstants.mediumAnimation,
+          themeAnimationCurve: Curves.easeInOut,
+
+          // Initial Screen
+          home: const SplashScreen(),
+        );
+      },
+    );
+  }
+}
